@@ -1,6 +1,9 @@
 package main.display;
 
 import main.calculations.BufferEngine;
+import main.components.Controller;
+import main.components.Level;
+import main.components.View;
 
 import javax.swing.*;
 import java.awt.*;
@@ -25,17 +28,28 @@ public class RayDisplay extends JFrame implements Runnable {
     private BufferedImage frame;
     private BufferEngine bufferEng;
 
+    private View view;
+
     public RayDisplay() {
 
+        Level l = new Level();
+
         bufferEng = new BufferEngine(width, height);
+        bufferEng.setLevel(l);
+
         frame = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         bufferEng.setPixelBuffer(((DataBufferInt) frame.getRaster().getDataBuffer()).getData());
+
+        view = new View();
 
         setSize(width, height);
         setResizable(false);
         setTitle(title);
-        setVisible(true);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        addKeyListener(new Controller(view));
+
+        setVisible(true);
 
         topBar = (int) (height - getContentPane().getSize().getHeight());
         setSize(width, height + topBar);
@@ -49,22 +63,27 @@ public class RayDisplay extends JFrame implements Runnable {
         begin();
     }
 
-    public void begin() {
+    private void begin() {
         long startTime;
         long difference;
         long delayTime;
         enabled = true;
 
+        double frameTime = 1.0;
+
         while(enabled) {
 
             startTime = System.nanoTime();
-            bufferEng.update();
+
+            bufferEng.update(view, frameTime);
             draw();
 
             difference = System.nanoTime() - startTime;
             delayTime = FRAME_TIME_MILIS - (difference / 1000000);
+            frameTime = 1.0;
             if (delayTime < 0) {
                 delayTime = 0;
+                frameTime = (difference / 1000000) / FRAME_TIME_MILIS;
             }
 
             try {
@@ -74,6 +93,7 @@ public class RayDisplay extends JFrame implements Runnable {
 
         System.exit(0);
     }
+
 
     private void draw() {
         BufferStrategy buffer = getBufferStrategy();
